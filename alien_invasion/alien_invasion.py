@@ -3,6 +3,10 @@ import pygame
 from settings import Settings
 from ship import Ship
 from bullet import Bullet
+from alien import  Alien
+from time import sleep
+from game_stats import GameStats
+
 
 
 """
@@ -22,10 +26,16 @@ class AilenInvasion:
         self.settings=Settings()
         self.screen=pygame.display.set_mode((self.settings.screen_width,self.settings.screen_height))
         pygame.display.set_caption("Alien Invasion")  #设置窗口标题
+        self.stats=GameStats(self)
+
         self.ship=Ship(self)
 
         #创建用于存储子弹的编组
         self.bullets=pygame.sprite.Group()
+        self.aliens=pygame.sprite.Group()
+
+        #创建外星人
+        self._create_fleet()
 
         #设置背景色(RGB,三元组红色，绿色，蓝色)
         #self.bg_color=(255,255,255)
@@ -51,8 +61,11 @@ class AilenInvasion:
             """
 
             self._check_events()
-            self.ship.update()
-            self._update_bulltes()
+
+            if self.stats.game_active:
+                self.ship.update()
+                self._update_bulltes()
+                self._update_aliens()
             self._updae_screen()
 
             #消失的子弹
@@ -85,6 +98,8 @@ class AilenInvasion:
 
         for bullet in self.bullets.sprites():
             bullet.draw_bullet()
+
+        self.aliens.draw(self.screen)
 
 
         pygame.display.flip()
@@ -125,6 +140,90 @@ class AilenInvasion:
             if bullet.rect.bottom <= 0:
                 self.bullets.remove(bullet)
         #print(len(self.bullets))
+
+        #检查是否有子弹击中了外星人，如果是，就删除相应的外星人和子弹
+        collsions=pygame.sprite.groupcollide(self.bullets,self.aliens,True,True)
+
+
+    def _create_alien(self, alien_number,row_number):
+        """创建一个外星人并将其放到前行"""
+        alien = Alien(self)
+        alien_with,alien_hight = alien.rect.size
+        alien.x = alien_with + 2 * alien_with * alien_number
+        alien.rect.x = alien.x
+        alien.rect.y=alien_hight+2*alien_hight*row_number
+        self.aliens.add(alien)
+
+    def _create_fleet(self):
+        """ 创建外星人 """
+        #创建外星人
+        alien=Alien(self)
+        alien_width,alien_height=alien.rect.size
+        available_space_x =self.settings.screen_width-(2*alien_width)
+        number_aliens_x=available_space_x//(2*alien_width)
+
+        #计算屏幕可以容纳多少行外星人
+        ship_hight=self.ship.rect.height
+        available_space_y=(self.settings.screen_height-(3*alien_height)-ship_hight)
+        number_rows=available_space_y//(2*alien_height)
+
+        #创建第一行外星人
+        for row_number in range(number_rows):
+          for alien_number in range(number_aliens_x):
+             self._create_alien(alien_number,row_number)
+    def _update_aliens(self):
+        """更新外星人位置,并在此之前检查是否有外星人在屏幕边缘"""
+        self._check_fleet_edges()
+        self.aliens.update()
+
+        #检查外星人与飞船是否相碰
+        if pygame.sprite.spritecollideany(self.ship,self.aliens):
+            self._ship_hit()
+        #检查是否有外星人碰到底部
+        self._check_aliens_bottom()
+
+    #检测外星人是否碰到边缘
+    def _check_fleet_edges(self):
+        """外星人是否到达边缘，以及采取的行为"""
+        for alien in self.aliens.sprites():
+            if alien.check_edges():
+                self._change_fleet_direction()
+                break
+    def _change_fleet_direction(self):
+        """ 全部外星人下移动，并改变水平移动方向"""
+        for alien in self.aliens.sprites():
+            alien.rect.y+=self.settings.fleet_drop_speed
+        self.settings.fleet_direction*=-1
+
+
+
+    def _ship_hit(self):
+        """响应飞船被外星人撞到了"""
+        if self.stats.ships_left>0:
+        #将sheips_left减1
+            self.stats.ships_left-=1
+
+            #清空余下的外星人和子弹
+            self.aliens.empty()
+            self.bullets.empty()
+
+            #创建一群新的外星人，并将飞船放到屏幕底中央
+            self._create_fleet()
+            self.ship.center_ship()
+
+            #暂停
+            sleep(0.5)
+        else:
+            self.stats.game_active=False
+
+    def _check_aliens_bottom(self):
+        """检查是否有外星人达到了屏幕底"""
+        screen_rect=self.screen.get_rect()
+        for alien in self.aliens.sprites():
+            if alien.rect.bottom>=screen_rect.bottom:
+                #像外星人被撞到一样处理
+                self._ship_hit()
+                break
 
 if  __name__ == '__main__':
     #创建游戏实例并运行游戏
