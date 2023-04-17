@@ -65,13 +65,15 @@ class Scoreboard:
 
     def prep_level(self):
         """将等级转换为渲染的图片"""
+        level_color=(255,0,0)
         level_str=str(self.stats.level)
-        self.level_image=self.font.render(level_str,True,self.text_color,self.settings.bg_color)
+        self.level_image=self.font.render(level_str,True,self.text_color,level_color)
 
         #等级放在得分的下方
         self.level_rect=self.level_image.get_rect()
-        self.level_rect.right=self.screen_rect.right
-        self.level_rect.top=self.screen_rect.bottom+10
+        self.level_rect.right=self.score_rect.right
+        self.level_rect.top=self.score_rect.bottom+10
+        print(level_str)
 
 
     def prep_ships(self):
