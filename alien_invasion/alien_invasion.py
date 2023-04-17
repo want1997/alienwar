@@ -112,7 +112,7 @@ class AilenInvasion:
             self.settings.initialize_dynamic_settings()
 
             #隐藏光标
-            pygame.mouse.set_visible(False)
+            pygame.mouse.set_visible(False)gi
             #处理游戏统计信息
 
             self.stats.reset_stats()
@@ -297,6 +297,7 @@ class AilenInvasion:
 
 if  __name__ == '__main__':
     #创建游戏实例并运行游戏
+    print("hello alien")
     ai=AilenInvasion()
 
     ai.run_game()
